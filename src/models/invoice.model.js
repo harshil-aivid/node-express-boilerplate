@@ -22,14 +22,14 @@ const gasTypeSchema = mongoose.Schema({
         trim: true,
         default: 0,
     },
-    
+
     total: {
         type: Number,
         required: true,
         trim: true,
         default: 0,
     },
-    
+
 
 });
 
@@ -54,15 +54,15 @@ const invoiceSchema = new mongoose.Schema({
         type: Date,
         trim: true
     },
-    
+
     dateObj: {
         type: Object,
         trim: true
     },
     profitCenter: {
         type: Number,
-        
-        
+
+
     },
     soldTo: {
         type: String,
@@ -71,12 +71,12 @@ const invoiceSchema = new mongoose.Schema({
     },
     shipVia: {
         type: String,
-        
+
         trim: true
     },
     to: {
         type: String,
-        
+
         trim: true
     },
     totalAmount: {
@@ -94,13 +94,18 @@ const invoiceSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-  
-    listOfPurchases :[gasTypeSchema],
+
+    listOfPurchases: [gasTypeSchema],
     rawText: {
         type: String,
-        
     },
-   
+    storedAt: {
+        type: String
+    },
+    fileOriginalName: {
+        type: String
+    }
+
 }, {
     timestamps: true
 })
@@ -111,10 +116,11 @@ const invoiceSchema = new mongoose.Schema({
 invoiceSchema.plugin(toJSON);
 invoiceSchema.plugin(paginate);
 
-invoiceSchema.statics.isInvoiceAlreadyPresent = async function (email, excludeUserId) {
-    const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
-    return !!user;
-  };
+invoiceSchema.statics.isInvoiceAlreadyPresent = async function (invoiceNo, excludeUserId) {
+    const invoice = await this.findOne({ invoiceNo, _id: { $ne: excludeUserId } });
+    return !!invoice;
+};
+
 
 /**
  * @typedef Invoice

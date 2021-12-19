@@ -4,8 +4,12 @@ const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const invoiceValidation = require('../../validations/invoice.validation');
 const invoiceController = require('../../controllers/invoice.controller');
-
+const pdfUpload = require('../../middlewares/pdfUpload');
 const router = express.Router();
+const logger = require("../../config/logger")
+
+logger.info("Added Invoice into the routes")
+
 
 router
   .route('/')
@@ -18,6 +22,8 @@ router
   .patch(auth('manageUsers'), validate(invoiceValidation.updateInvoice), invoiceController.updateInvoice)
   .delete(auth('manageUsers'), validate(invoiceValidation.deleteInvoice), invoiceController.deleteInvoice);
 
+router.route("/upload-invoices").post(pdfUpload.array("pdfs", 10), invoiceController.uploadInvoice)
+router.route("/get-all-invoices").post(invoiceController.getAllInvoices)
 
 module.exports = router;
 

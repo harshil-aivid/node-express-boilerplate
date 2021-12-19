@@ -1,6 +1,8 @@
 const httpStatus = require('http-status');
+const { extractContent } = require('../helpers/pdf2json');
 const { Invoice } = require('../models');
 const ApiError = require('../utils/ApiError');
+const fs = require("fs")
 
 /**
  * Adding new  Invoice
@@ -8,8 +10,11 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<Invoice>}
  */
 const addInvoice = async (invoiceBody) => {
-  if (await Invoice.isInvoiceAlreadyPresent(invoiceBody.invoiceNo)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invoice already added');
+  const prevEntry = await Invoice.findOne(({ invoiceNo: invoiceBody.invoiceNo }));
+  if (prevEntry) {
+    fs.unlinkSync(prevEntry.storedAt)
+    return Invoice.findOneAndUpdate({ invoiceNo: invoiceBody.invoiceNo }, invoiceBody);
+    // throw new ApiError(httpStatus.BAD_REQUEST, 'Invoice already added');
   }
   return Invoice.create(invoiceBody);
 };
@@ -57,7 +62,7 @@ const updateInvoiceById = async (invoiceNo, updateBody) => {
   if (!invoice) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Invoice not found');
   }
-  
+
   Object.assign(invoice, updateBody);
   await invoice.save();
   return invoice;
@@ -77,11 +82,40 @@ const deleteInvoiceById = async (invoiceId) => {
   return invoice;
 };
 
+/**
+ * Upload Mulitple pdf Invoice and add into db
+ * @param {Files} files
+ * @returns {Promise<Invoice>}
+ */
+const parseAndAddInvoices = async (files) => {
+  const result = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const invoiceObj = await extractContent(files[i].path);
+      await addInvoice({ ...invoiceObj, storedAt: files[i].path, fileOriginalName: files[i].originalname });
+      result.push({ fileName: files[i].originalname, extractedJson: invoiceObj });
+    }
+    catch (error) {
+      result.push({ fileName: files[i].originalname, error: true, message: error.message, })
+    }
+  }
+  return result
+}
+
+
+/**
+ * Get All Invoices 
+ */
+const getAllInvoices = async () => {
+  const result = await Invoice.find({});
+  return result;
+}
 module.exports = {
   addInvoice,
   queryInvoices,
   getInvoiceById,
   getInvoiceByNumber,
   updateInvoiceById,
-  deleteInvoiceById,
+  deleteInvoiceById, parseAndAddInvoices,
+  getAllInvoices
 };

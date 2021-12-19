@@ -18,7 +18,7 @@ const defaultRoutes = [
     route: userRoute,
   },
   {
-    path: '/users',
+    path: '/invoice',
     route: invoiceRoute,
   },
 ];
