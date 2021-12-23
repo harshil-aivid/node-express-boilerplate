@@ -24,6 +24,8 @@ router
 
 router.route("/upload-invoices").post(pdfUpload.array("pdfs", 10), invoiceController.uploadInvoice)
 router.route("/get-all-invoices").post(invoiceController.getAllInvoices)
+router.route("/get-filter-options-list").post(invoiceController.getFilterOptionsList)
+router.route("/get-chart-data").post(invoiceController.getChartData)
 
 module.exports = router;
 

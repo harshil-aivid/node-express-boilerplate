@@ -2,7 +2,8 @@ const httpStatus = require('http-status');
 const { extractContent } = require('../helpers/pdf2json');
 const { Invoice } = require('../models');
 const ApiError = require('../utils/ApiError');
-const fs = require("fs")
+const fs = require("fs");
+const { filterOptionsList } = require('../config/invoice');
 
 /**
  * Adding new  Invoice
@@ -91,9 +92,12 @@ const parseAndAddInvoices = async (files) => {
   const result = [];
   for (let i = 0; i < files.length; i++) {
     try {
-      const invoiceObj = await extractContent(files[i].path);
-      await addInvoice({ ...invoiceObj, storedAt: files[i].path, fileOriginalName: files[i].originalname });
-      result.push({ fileName: files[i].originalname, extractedJson: invoiceObj });
+      const invoicesList = await extractContent(files[i].path);
+      for (let j = 0; j < invoicesList.length; j++) {
+        const invoiceObj = invoicesList[j];
+        await addInvoice({ ...invoiceObj, storedAt: files[i].path, fileOriginalName: files[i].originalname });
+        result.push({ fileName: files[i].originalname, extractedJson: invoiceObj });
+      }
     }
     catch (error) {
       result.push({ fileName: files[i].originalname, error: true, message: error.message, })
@@ -110,6 +114,87 @@ const getAllInvoices = async () => {
   const result = await Invoice.find({});
   return result;
 }
+
+const getDistictValues = async ()=>{
+  let result = {}
+  for(let i=0;i<filterOptionsList.length;i++){
+    result[filterOptionsList[i].optionsName]= await Invoice.distinct(filterOptionsList[i].key)
+  }
+  return result;
+}
+
+const aggregateChartData_old = async ()=>{
+  // Date format %Y-%m-%d
+  // Month format %m
+
+  const result = await Invoice.aggregate(
+    [
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$dateTime" } },
+          totalAmount: {
+            $sum: "$totalAmount"
+          }
+        }
+      }
+    ]
+)
+  return result;
+}
+
+const aggregateChartData_save = async ()=>{
+  // Date format %Y-%m-%d
+  // Month formate
+  const result = await Invoice.aggregate(
+    [
+      {
+        $group: {
+          _id: { $dateToString: { format: "%m", date: "$dateTime" },to:"$to" },
+          totalAmount: {
+            $sum: "$totalAmount"
+          }
+        }
+      },{
+        $group: {
+          _id: { age: "$_id.age" }, 
+          children: { $addToSet: { gender: "$_id.gender", names:"$names" } } 
+        } 
+      }
+    ]
+)
+  return result;
+}
+
+const aggregateChartData = async ()=>{
+  // Date format %Y-%m-%d
+  // Month formate
+  const result = await Invoice.aggregate(
+    [{
+      $group: {
+         _id: {
+            month: { $dateToString: { format: "%Y", date: "$dateTime" } },
+            to: "$to"
+         },
+         totalAmount: {
+            "$sum": "$totalAmount"
+         }
+      }
+   }, {
+      $group: {
+         _id: "$_id.month",
+         to_GROUP: {
+            $push: {
+               to: "$_id.to",
+               fullTotal: "$totalAmount"
+            }
+         }
+      }
+   }]
+)
+  return result;
+}
+
+
 module.exports = {
   addInvoice,
   queryInvoices,
@@ -117,5 +202,5 @@ module.exports = {
   getInvoiceByNumber,
   updateInvoiceById,
   deleteInvoiceById, parseAndAddInvoices,
-  getAllInvoices
+  getAllInvoices,getDistictValues,aggregateChartData
 };

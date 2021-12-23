@@ -45,6 +45,15 @@ const getAllInvoices = catchAsync(async (req, res) => {
   res.send(listOfInvoices)
 })
 
+const getFilterOptionsList = catchAsync(async (req,res)=>{
+  const listOfFilterOptions = await invoiceService.getDistictValues();
+  res.send(listOfFilterOptions)
+})
+const getChartData = catchAsync(async (req,res)=>{
+  const chartData = await invoiceService.aggregateChartData();
+  res.send(chartData)
+})
+
 module.exports = {
   addInvoice,
   getInvoices,
@@ -52,5 +61,7 @@ module.exports = {
   updateInvoice,
   deleteInvoice,
   uploadInvoice,
-  getAllInvoices
+  getAllInvoices,
+  getFilterOptionsList,
+  getChartData
 };

@@ -5,19 +5,26 @@ const { DEMO_RESPONSE, productInfoExtractionList, keyValuePairRegex, customField
 async function getContent(src) {
 
   const doc = await pdfjs.getDocument(src).promise;
-  const page = await doc.getPage(1); // if doc has many pages use doc.numPages to iterate and pass index to doc.getPage
-  return await page.getTextContent();
+  const pagesTextContent = []
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i); // if doc has many pages use doc.numPages to iterate and pass index to doc.getPage
+    const textContent = await page.getTextContent();
+    pagesTextContent.push(textContent);
+  }
+  return pagesTextContent;
+
 }
 
 async function extractContent(src) {
   // Perform pre-processing
-  const content = await getContent(src);
-  const listOfContentLines = content.items
-    .filter((item) => item.str.trim().length)
-    .map((item) => item.str);
-
-  const jsonObj = extractJSONFromPdfTextArray(listOfContentLines);
-  return jsonObj;
+  const pagesTextContent = await getContent(src);
+  return pagesTextContent.map((content) => {
+    const listOfContentLines = content.items
+      .filter((item) => item.str.trim().length)
+      .map((item) => item.str);
+    const jsonObj = extractJSONFromPdfTextArray(listOfContentLines);
+    return jsonObj;
+  })
 }
 
 

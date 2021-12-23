@@ -132,8 +132,9 @@ const customFieldExtractionList = [{
 }
 ]
 
+const filterOptionsList = [{key : "soldTo", optionsName:"companyOptions"},{key : "to", optionsName:"storeOptions"}]
 
 
 
 
-module.exports = { DEMO_RESPONSE, productInfoExtractionList, keyValuePairRegex, customFieldExtractionList }
+module.exports = { DEMO_RESPONSE, productInfoExtractionList, keyValuePairRegex, customFieldExtractionList , filterOptionsList }
