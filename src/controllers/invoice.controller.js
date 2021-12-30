@@ -45,13 +45,25 @@ const getAllInvoices = catchAsync(async (req, res) => {
   res.send(listOfInvoices)
 })
 
-const getFilterOptionsList = catchAsync(async (req,res)=>{
+const getFilterOptionsList = catchAsync(async (req, res) => {
   const listOfFilterOptions = await invoiceService.getDistictValues();
   res.send(listOfFilterOptions)
 })
-const getChartData = catchAsync(async (req,res)=>{
-  const chartData = await invoiceService.aggregateChartData();
+const getTimeWiseChartData = catchAsync(async (req, res) => {
+  const { timeFormat, entityField, } = req.body
+  const chartData = await invoiceService.getTimeWiseChartData(timeFormat, entityField);
   res.send(chartData)
+})
+
+const getStats = catchAsync(async (req, res) => {
+  const statsData = await invoiceService.getStats();
+  res.send(statsData)
+})
+
+const getEntityWiseChartData = catchAsync(async (req, res) => {
+  const { entityField } = req.body
+  const entityWiseChartData = await invoiceService.getEntityWiseChartData(entityField);
+  res.send(entityWiseChartData)
 })
 
 module.exports = {
@@ -63,5 +75,7 @@ module.exports = {
   uploadInvoice,
   getAllInvoices,
   getFilterOptionsList,
-  getChartData
+  getTimeWiseChartData,
+  getStats,
+  getEntityWiseChartData
 };

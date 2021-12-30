@@ -8,7 +8,6 @@ const pdfUpload = require('../../middlewares/pdfUpload');
 const router = express.Router();
 const logger = require("../../config/logger")
 
-logger.info("Added Invoice into the routes")
 
 
 router
@@ -25,7 +24,9 @@ router
 router.route("/upload-invoices").post(pdfUpload.array("pdfs", 10), invoiceController.uploadInvoice)
 router.route("/get-all-invoices").post(invoiceController.getAllInvoices)
 router.route("/get-filter-options-list").post(invoiceController.getFilterOptionsList)
-router.route("/get-chart-data").post(invoiceController.getChartData)
+router.route("/get-time-chart-data").post(invoiceController.getTimeWiseChartData)
+router.route("/get-entity-chart-data").post(invoiceController.getEntityWiseChartData)
+router.route("/get-stats").post(invoiceController.getStats)
 
 module.exports = router;
 

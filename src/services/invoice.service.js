@@ -115,15 +115,15 @@ const getAllInvoices = async () => {
   return result;
 }
 
-const getDistictValues = async ()=>{
+const getDistictValues = async () => {
   let result = {}
-  for(let i=0;i<filterOptionsList.length;i++){
-    result[filterOptionsList[i].optionsName]= await Invoice.distinct(filterOptionsList[i].key)
+  for (let i = 0; i < filterOptionsList.length; i++) {
+    result[filterOptionsList[i].optionsName] = await Invoice.distinct(filterOptionsList[i].key)
   }
   return result;
 }
 
-const aggregateChartData_old = async ()=>{
+const aggregateChartData_old = async () => {
   // Date format %Y-%m-%d
   // Month format %m
 
@@ -138,61 +138,201 @@ const aggregateChartData_old = async ()=>{
         }
       }
     ]
-)
+  )
   return result;
 }
 
-const aggregateChartData_save = async ()=>{
+const aggregateChartData_save = async () => {
   // Date format %Y-%m-%d
   // Month formate
   const result = await Invoice.aggregate(
     [
       {
         $group: {
-          _id: { $dateToString: { format: "%m", date: "$dateTime" },to:"$to" },
+          _id: { $dateToString: { format: "%m", date: "$dateTime" }, to: "$to" },
           totalAmount: {
             $sum: "$totalAmount"
           }
         }
-      },{
+      }, {
         $group: {
-          _id: { age: "$_id.age" }, 
-          children: { $addToSet: { gender: "$_id.gender", names:"$names" } } 
-        } 
+          _id: { age: "$_id.age" },
+          children: { $addToSet: { gender: "$_id.gender", names: "$names" } }
+        }
       }
     ]
-)
+  )
   return result;
 }
 
-const aggregateChartData = async ()=>{
+const getTimeWiseChartData = async (timeFormat = "%Y-%m-%d", entityField = "to") => {
   // Date format %Y-%m-%d
   // Month formate
+  // const result = await Invoice.aggregate(
+  //   [
+  //     {
+  //       '$project': {
+  //         'invoiceQuantity': {
+  //           '$sum': '$listOfPurchases.quantity',
+  //         },
+  //         'invoiceTotalAmount': {
+  //           '$sum': '$totalAmount'
+  //         },
+  //         formattedDate: { $dateToString: { format: timeFormat, date: "$dateTime" } }
+  //       }
+  //     },
+  //     {
+  //       $group: {
+  //         _id: {
+  //           aggsTime: '$formattedDate',
+  //           entity: "$to",
+
+  //         },
+  //         'invoiceQuantity': {
+  //           '$sum': '$listOfPurchases.quantity',
+  //         },
+  //         'invoiceTotalAmount': {
+  //           '$sum': '$totalAmount'
+  //         },
+
+  //       }
+  //     }, {
+  //       $group: {
+  //         _id: "$_id.aggsTime",
+  //         to_GROUP: {
+  //           $push: {
+  //             entity: "$_id.entity",
+  //             sumOfTotalAmount: "$_id.invoiceTotalAmount",
+  //             sumOfQuantity: "$_id.invoiceQuantity"
+  //           }
+  //         }
+  //       }
+  //     }]
+  // )if (entityField.includes("listOfPurchases")) {
+
+
+  const result = await Invoice.aggregate([
+    {
+      "$unwind": { path: "$listOfPurchases" }
+    },
+    {
+      '$project': {
+        'entity': `$${entityField}`,
+        'invoiceQuantity': {
+          '$sum': '$listOfPurchases.quantity'
+        },
+        'invoiceTotalAmount': {
+          '$sum': entityField.includes("listOfPurchases") ? '$listOfPurchases.total' : '$totalAmount'
+        },
+        'formattedDate': {
+          '$dateToString': {
+            'format': timeFormat,
+            'date': '$dateTime'
+          }
+        }
+      }
+    }, {
+      '$group': {
+        '_id': {
+          'aggsTime': '$formattedDate',
+          'entity': '$entity'
+        },
+        'sumOfQuantity': {
+          '$sum': '$invoiceQuantity'
+        },
+        'sumOfTotalAmount': {
+          '$sum': '$invoiceTotalAmount'
+        }
+      }
+    }
+  ])
+
+  return result
+}
+
+
+const getStats = async () => {
+  // Date format %Y-%m-%d
+  // Month formate
+  const [result] = await Invoice.aggregate(
+    [
+      {
+        '$project': {
+          'invoiceQuantity': {
+            '$sum': '$listOfPurchases.quantity'
+          },
+          'invoiceTotalAmount': {
+            '$sum': '$totalAmount'
+          }
+        }
+      }, {
+        '$group': {
+          '_id': null,
+          'sumOfQuantity': {
+            '$sum': '$invoiceQuantity'
+          },
+          'sumOfTotalAmount': {
+            '$sum': '$invoiceTotalAmount'
+          }
+        }
+      }
+    ]
+  )
+  const days = (await Invoice.distinct('dateTime')).length;
+  const { sumOfQuantity, sumOfTotalAmount } = result;
+  return { sumOfQuantity, sumOfTotalAmount, days };
+}
+
+const getEntityWiseChartData = async (entityField = "to") => {
+  console.log(entityField)
+  let entityByAggsPipeline = [
+    {
+      '$project': {
+        'invoiceQuantity': {
+          '$sum': '$listOfPurchases.quantity',
+        },
+        'invoiceTotalAmount': {
+          '$sum': '$totalAmount'
+        },
+        [entityField]: `$${entityField}`
+      }
+    }, {
+      '$group': {
+        '_id': `$${entityField}`,
+        'sumOfQuantity': {
+          '$sum': '$invoiceQuantity'
+        },
+        'sumOfTotalAmount': {
+          '$sum': '$invoiceTotalAmount'
+        }
+      }
+    }
+  ]
+  if (entityField.includes("listOfPurchases")) {
+    entityByAggsPipeline = [
+      {
+        '$unwind': {
+          'path': '$listOfPurchases'
+        }
+      }, {
+        '$group': {
+          '_id': '$listOfPurchases.gasTypeName',
+          'sumOfQuantity': {
+            '$sum': '$listOfPurchases.quantity'
+          },
+          'sumOfTotalAmount': {
+            '$sum': '$listOfPurchases.total'
+          }
+        }
+      }
+    ]
+  }
   const result = await Invoice.aggregate(
-    [{
-      $group: {
-         _id: {
-            month: { $dateToString: { format: "%Y", date: "$dateTime" } },
-            to: "$to"
-         },
-         totalAmount: {
-            "$sum": "$totalAmount"
-         }
-      }
-   }, {
-      $group: {
-         _id: "$_id.month",
-         to_GROUP: {
-            $push: {
-               to: "$_id.to",
-               fullTotal: "$totalAmount"
-            }
-         }
-      }
-   }]
-)
+    entityByAggsPipeline
+  )
   return result;
 }
+
 
 
 module.exports = {
@@ -202,5 +342,6 @@ module.exports = {
   getInvoiceByNumber,
   updateInvoiceById,
   deleteInvoiceById, parseAndAddInvoices,
-  getAllInvoices,getDistictValues,aggregateChartData
+  getAllInvoices, getDistictValues, getStats, getEntityWiseChartData,
+  getTimeWiseChartData
 };
