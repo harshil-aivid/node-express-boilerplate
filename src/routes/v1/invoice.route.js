@@ -21,7 +21,7 @@ router
   .patch(auth('manageUsers'), validate(invoiceValidation.updateInvoice), invoiceController.updateInvoice)
   .delete(auth('manageUsers'), validate(invoiceValidation.deleteInvoice), invoiceController.deleteInvoice);
 
-router.route("/upload-invoices").post(pdfUpload.array("pdfs", 10), invoiceController.uploadInvoice)
+router.route("/upload-invoices").post(pdfUpload.array("pdfs", 100), invoiceController.uploadInvoice)
 router.route("/get-all-invoices").post(invoiceController.getAllInvoices)
 router.route("/get-filter-options-list").post(invoiceController.getFilterOptionsList)
 router.route("/get-time-chart-data").post(invoiceController.getTimeWiseChartData)

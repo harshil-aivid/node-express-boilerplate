@@ -50,19 +50,25 @@ const getFilterOptionsList = catchAsync(async (req, res) => {
   res.send(listOfFilterOptions)
 })
 const getTimeWiseChartData = catchAsync(async (req, res) => {
-  const { timeFormat, entityField, } = req.body
-  const chartData = await invoiceService.getTimeWiseChartData(timeFormat, entityField);
+  const { timeFormat, entityField, startISOString,
+    endISOString, storeFilterList } = req.body
+  const chartData = await invoiceService.getTimeWiseChartData(timeFormat, entityField, startISOString,
+    endISOString, storeFilterList);
   res.send(chartData)
 })
 
 const getStats = catchAsync(async (req, res) => {
-  const statsData = await invoiceService.getStats();
+  const { startISOString,
+    endISOString, storeFilterList } = req.body;
+  const statsData = await invoiceService.getStats(startISOString,
+    endISOString, storeFilterList);
   res.send(statsData)
 })
 
 const getEntityWiseChartData = catchAsync(async (req, res) => {
-  const { entityField } = req.body
-  const entityWiseChartData = await invoiceService.getEntityWiseChartData(entityField);
+  const { entityField, startISOString,
+    endISOString, storeFilterList } = req.body
+  const entityWiseChartData = await invoiceService.getEntityWiseChartData(entityField, startISOString, endISOString, storeFilterList);
   res.send(entityWiseChartData)
 })
 

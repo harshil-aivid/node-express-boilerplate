@@ -4,6 +4,7 @@ const { Invoice } = require('../models');
 const ApiError = require('../utils/ApiError');
 const fs = require("fs");
 const { filterOptionsList } = require('../config/invoice');
+const { logger } = require("../config/logger")
 
 /**
  * Adding new  Invoice
@@ -13,7 +14,10 @@ const { filterOptionsList } = require('../config/invoice');
 const addInvoice = async (invoiceBody) => {
   const prevEntry = await Invoice.findOne(({ invoiceNo: invoiceBody.invoiceNo }));
   if (prevEntry) {
-    fs.unlinkSync(prevEntry.storedAt)
+    try { fs.unlinkSync(prevEntry.storedAt) }
+    catch (e) {
+      logger.error("Wow , File was not saved previously.")
+    }
     return Invoice.findOneAndUpdate({ invoiceNo: invoiceBody.invoiceNo }, invoiceBody);
     // throw new ApiError(httpStatus.BAD_REQUEST, 'Invoice already added');
   }
@@ -123,49 +127,8 @@ const getDistictValues = async () => {
   return result;
 }
 
-const aggregateChartData_old = async () => {
-  // Date format %Y-%m-%d
-  // Month format %m
 
-  const result = await Invoice.aggregate(
-    [
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$dateTime" } },
-          totalAmount: {
-            $sum: "$totalAmount"
-          }
-        }
-      }
-    ]
-  )
-  return result;
-}
-
-const aggregateChartData_save = async () => {
-  // Date format %Y-%m-%d
-  // Month formate
-  const result = await Invoice.aggregate(
-    [
-      {
-        $group: {
-          _id: { $dateToString: { format: "%m", date: "$dateTime" }, to: "$to" },
-          totalAmount: {
-            $sum: "$totalAmount"
-          }
-        }
-      }, {
-        $group: {
-          _id: { age: "$_id.age" },
-          children: { $addToSet: { gender: "$_id.gender", names: "$names" } }
-        }
-      }
-    ]
-  )
-  return result;
-}
-
-const getTimeWiseChartData = async (timeFormat = "%Y-%m-%d", entityField = "to") => {
+const getTimeWiseChartData = async (timeFormat = "%Y-%m-%d", entityField = "to", startISOString, endISOString, storeFilterList = []) => {
   // Date format %Y-%m-%d
   // Month formate
   // const result = await Invoice.aggregate(
@@ -213,6 +176,12 @@ const getTimeWiseChartData = async (timeFormat = "%Y-%m-%d", entityField = "to")
 
   const result = await Invoice.aggregate([
     {
+      "$match": {
+        to: { $in: storeFilterList },
+        dateTime: { $gte: new Date(startISOString), $lt: new Date(endISOString) }
+      }
+    },
+    {
       "$unwind": { path: "$listOfPurchases" }
     },
     {
@@ -251,11 +220,17 @@ const getTimeWiseChartData = async (timeFormat = "%Y-%m-%d", entityField = "to")
 }
 
 
-const getStats = async () => {
+const getStats = async (startISOString, endISOString, storeFilterList = []) => {
   // Date format %Y-%m-%d
   // Month formate
   const [result] = await Invoice.aggregate(
     [
+      {
+        "$match": {
+          to: { $in: storeFilterList },
+          dateTime: { $gte: new Date(startISOString), $lt: new Date(endISOString) }
+        }
+      },
       {
         '$project': {
           'invoiceQuantity': {
@@ -279,13 +254,22 @@ const getStats = async () => {
     ]
   )
   const days = (await Invoice.distinct('dateTime')).length;
+  if (!result) {
+    return { sumOfQuantity: 0, sumOfTotalAmount: 0, days }
+  }
   const { sumOfQuantity, sumOfTotalAmount } = result;
   return { sumOfQuantity, sumOfTotalAmount, days };
 }
 
-const getEntityWiseChartData = async (entityField = "to") => {
+const getEntityWiseChartData = async (entityField = "to", startISOString, endISOString, storeFilterList = []) => {
   console.log(entityField)
   let entityByAggsPipeline = [
+    {
+      "$match": {
+        to: { $in: storeFilterList },
+        dateTime: { $gte: new Date(startISOString), $lt: new Date(endISOString) }
+      }
+    },
     {
       '$project': {
         'invoiceQuantity': {
