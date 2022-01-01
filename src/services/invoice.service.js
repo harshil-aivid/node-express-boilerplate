@@ -16,7 +16,7 @@ const addInvoice = async (invoiceBody) => {
   if (prevEntry) {
     try { fs.unlinkSync(prevEntry.storedAt) }
     catch (e) {
-      logger.error("Wow , File was not saved previously.")
+      // logger.error("Wow , File was not saved previously.")
     }
     return Invoice.findOneAndUpdate({ invoiceNo: invoiceBody.invoiceNo }, invoiceBody);
     // throw new ApiError(httpStatus.BAD_REQUEST, 'Invoice already added');
